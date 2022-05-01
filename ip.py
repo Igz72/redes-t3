@@ -1,3 +1,4 @@
+import ipaddress
 from iputils import *
 
 
@@ -31,7 +32,17 @@ class IP:
         # TODO: Use a tabela de encaminhamento para determinar o próximo salto
         # (next_hop) a partir do endereço de destino do datagrama (dest_addr).
         # Retorne o next_hop para o dest_addr fornecido.
-        pass
+
+        destino = ipaddress.ip_network(dest_addr)
+
+        for tupla in self.tabela:
+            entrada = ipaddress.ip_network(tupla[0])
+            saida = tupla[1]
+
+            if (destino.subnet_of(entrada)):
+                return saida
+
+        return None
 
     def definir_endereco_host(self, meu_endereco):
         """
@@ -51,7 +62,16 @@ class IP:
         """
         # TODO: Guarde a tabela de encaminhamento. Se julgar conveniente,
         # converta-a em uma estrutura de dados mais eficiente.
-        pass
+
+        self.tabela = []
+
+        for tupla in tabela:
+            entrada = tupla[0]
+            saida = tupla[1]
+            bits = int(tupla[0].split('/')[1])
+            self.tabela.append((entrada, saida, bits))
+        
+        self.tabela.sort(key=lambda tupla: tupla[2], reverse=True)
 
     def registrar_recebedor(self, callback):
         """
