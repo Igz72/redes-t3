@@ -1,4 +1,5 @@
 import ipaddress
+import struct
 from iputils import *
 
 
@@ -14,6 +15,7 @@ class IP:
         self.enlace.registrar_recebedor(self.__raw_recv)
         self.ignore_checksum = self.enlace.ignore_checksum
         self.meu_endereco = None
+        self.identificador = 0
 
     def __raw_recv(self, datagrama):
         dscp, ecn, identification, flags, frag_offset, ttl, proto, \
@@ -87,4 +89,18 @@ class IP:
         next_hop = self._next_hop(dest_addr)
         # TODO: Assumindo que a camada superior é o protocolo TCP, monte o
         # datagrama com o cabeçalho IP, contendo como payload o segmento.
+
+        self.identificador += 1
+        cabecalho = struct.pack('!BBHHHBBH', 0x45, 0, 20 + len(segmento),
+                                self.identificador, 0,
+                                64, 6, 0)
+        cabecalho = cabecalho + str2addr(self.meu_endereco) + str2addr(dest_addr)
+        checksum = calc_checksum(cabecalho)
+        cabecalho = struct.pack('!BBHHHBBH', 0x45, 0, 20 + len(segmento),
+                                self.identificador, 0,
+                                64, 6, checksum)
+        cabecalho = cabecalho + str2addr(self.meu_endereco) + str2addr(dest_addr)
+
+        datagrama = cabecalho + segmento
+
         self.enlace.enviar(datagrama, next_hop)
