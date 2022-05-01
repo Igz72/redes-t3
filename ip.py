@@ -36,14 +36,33 @@ class IP:
             time_to_live -= 1
 
             if (time_to_live <= 0):
+                cabecalho_icmp = struct.pack('!BBHI', 11, 0, 0, 0)
+                pacote_icmp = cabecalho_icmp + datagrama[:28]
+                checksum_icmp = calc_checksum(pacote_icmp)
+                cabecalho_icmp = struct.pack('!BBHI', 11, 0, checksum_icmp, 0)
+                pacote_icmp = cabecalho_icmp + datagrama[:28]
+
+                next_hop = self._next_hop(origem)
+                cabecalho_ip = struct.pack('!BBHHHBBH', 0x45, 0, 20 + len(pacote_icmp),
+                                            identificador, 0,
+                                            64, 1, 0)
+                cabecalho_ip = cabecalho_ip + str2addr(self.meu_endereco) + struct.pack('!I', origem)
+                checksum_ip = calc_checksum(cabecalho_ip)
+                cabecalho_ip = struct.pack('!BBHHHBBH', 0x45, 0, 20 + len(pacote_icmp),
+                                            identificador, 0,
+                                            64, 1, checksum_ip)
+                cabecalho_ip = cabecalho_ip + str2addr(self.meu_endereco) + struct.pack('!I', origem)
+
+                datagrama = cabecalho_ip + pacote_icmp
+                self.enlace.enviar(datagrama, next_hop)
                 return
 
-            cabecalho = struct.pack('!BBHHHBBHII', 0x45, 0, 20 + comprimento,
+            cabecalho = struct.pack('!BBHHHBBHII', 0x45, 0, comprimento,
                                     identificador, 0,
                                     time_to_live, 6, 0,
                                     origem, destino)
             checksum = calc_checksum(cabecalho)
-            cabecalho = struct.pack('!BBHHHBBHII', 0x45, 0, 20 + comprimento,
+            cabecalho = struct.pack('!BBHHHBBHII', 0x45, 0, comprimento,
                                     identificador, 0,
                                     time_to_live, 6, checksum,
                                     origem, destino)
