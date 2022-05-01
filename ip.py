@@ -28,6 +28,26 @@ class IP:
             # atua como roteador
             next_hop = self._next_hop(dst_addr)
             # TODO: Trate corretamente o campo TTL do datagrama
+
+            _, _, comprimento, \
+            identificador, _, \
+            time_to_live, _, _, \
+            origem, destino = struct.unpack('!BBHHHBBHII', datagrama[:20])
+            time_to_live -= 1
+
+            if (time_to_live <= 0):
+                return
+
+            cabecalho = struct.pack('!BBHHHBBHII', 0x45, 0, 20 + comprimento,
+                                    identificador, 0,
+                                    time_to_live, 6, 0,
+                                    origem, destino)
+            checksum = calc_checksum(cabecalho)
+            cabecalho = struct.pack('!BBHHHBBHII', 0x45, 0, 20 + comprimento,
+                                    identificador, 0,
+                                    time_to_live, 6, checksum,
+                                    origem, destino)
+            datagrama = cabecalho + payload
             self.enlace.enviar(datagrama, next_hop)
 
     def _next_hop(self, dest_addr):
